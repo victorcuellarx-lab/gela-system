@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>GELA - Grupo Educativo Los Ángeles</title>
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        .header { margin-bottom: 30px; animation: fadeInDown 0.5s ease; }
+        .logo-container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 15px 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transition: transform 0.3s;
+        }
+        .logo-container:hover { transform: translateY(-2px); }
+        .logo-text .grupo { font-size: 0.8rem; color: #1e3c72; letter-spacing: 2px; font-weight: 600; }
+        .logo-text .nombre { font-size: 1.6rem; font-weight: bold; color: #1e3c72; line-height: 1.2; }
+        .title-container { text-align: center; margin-top: 20px; }
+        .title-container h1 { font-size: clamp(1.8rem, 6vw, 2.8rem); color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        .title-container p { font-size: clamp(0.9rem, 4vw, 1.1rem); color: rgba(255,255,255,0.95); }
+        .header-flex { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 25px;
+            animation: fadeInUp 0.5s ease;
+        }
+        .card h2 { margin-bottom: 20px; color: #333; font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .metric-card {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .metric-card:hover { transform: translateY(-5px); }
+        .metric-card .value { font-size: 2.5rem; font-weight: bold; margin-bottom: 5px; }
+        .metric-card .label { font-size: 0.85rem; opacity: 0.9; }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .chart-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+        }
+        .chart-container h3 { margin-bottom: 15px; color: #333; font-size: 1rem; border-left: 3px solid #1e3c72; padding-left: 10px; }
+        canvas { max-height: 250px; width: 100%; }
+        .ranking-table, .results-table { overflow-x: auto; }
+        .ranking-table table, .results-table table { width: 100%; border-collapse: collapse; }
+        .ranking-table th, .ranking-table td, .results-table th, .results-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .ranking-table th, .results-table th { background: #f8f9fa; font-weight: 600; color: #495057; }
+        .ranking-table tr:hover, .results-table tr:hover { background: #f8f9fa; }
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .filter-group label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; font-weight: 600; }
+        .filter-group select, .filter-group input { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
+        .btn-filter {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        .btn-filter:hover { transform: translateY(-2px); }
+        .btn-clear { background: #6c757d; }
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+            z-index: 1000;
+            border: none;
+        }
+        .fab:hover { transform: scale(1.1); }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content {
+            background: white;
+            border-radius: 25px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalIn 0.3s ease;
+        }
+        @keyframes modalIn { from { opacity: 0; transform: translateY(-50px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border-radius: 25px 25px 0 0;
+        }
+        .modal-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+        }
+        .modal-body { padding: 25px; }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 13px; }
+        .form-group label.required::after { content: " *"; color: #dc3545; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #1e3c72; }
+        .full-width { grid-column: 1 / -1; }
+        .conditional-field { display: none; }
+        .conditional-field.show { display: block; }
+        .date-field { background: #f8f9fa; padding: 15px; border-radius: 12px; border-left: 4px solid #1e3c72; }
+        .date-field label { color: #1e3c72; margin-bottom: 10px; }
+        .btn-submit {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        .btn-submit:hover { transform: translateY(-2px); }
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+        .alert { padding: 12px; border-radius: 12px; margin-bottom: 20px; display: none; }
+        .alert.success { background: #d4edda; color: #155724; display: block; }
+        .alert.error { background: #f8d7da; color: #721c24; display: block; }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge.alta { background: #f8d7da; color: #721c24; }
+        .badge.media { background: #fff3cd; color: #856404; }
+        .badge.baja { background: #d4edda; color: #155724; }
+        .badge.published { background: #d4edda; color: #155724; }
+        .badge.pending { background: #fff3cd; color: #856404; }
+        .badge.programar { background: #cce5ff; color: #004085; }
+        .timestamp-info {
+            background: #e8f0fe;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 12px;
+            color: #1e3c72;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-left: 3px solid #1e3c72;
+        }
+        .timestamp-info::before { content: "🕐"; }
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid white;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 768px) {
+            body { padding: 15px; }
+            .card { padding: 20px; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .filters-grid { grid-template-columns: 1fr; }
+            .fab { width: 50px; height: 50px; font-size: 24px; }
+            .logo-text .nombre { font-size: 1.2rem; }
+            .logo-container { padding: 10px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-flex">
+                <div class="logo-container">
+                    <div class="logo-text">
+                        <div class="grupo">GRUPO EDUCATIVO</div>
+                        <div class="nombre">LOS ÁNGELES</div>
+                    </div>
+                </div>
+                <div style="flex: 1;"></div>
+            </div>
+            <div class="title-container">
+                <h1>📊 GELA - Gestor de Contenido</h1>
+                <p>Sistema de registro de comunicación | Ciclo Escolar 2025-2026</p>
+            </div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div class="card">
+            <h2>⚡ Dashboard de Eficiencia</h2>
+            <div class="dashboard-grid">
+                <div class="metric-card"><div class="value" id="tasaPublicacion">0%</div><div class="label">Tasa de Publicación</div></div>
+                <div class="metric-card"><div class="value" id="tiempoPromedio">0</div><div class="label">Tiempo promedio (días)</div></div>
+                <div class="metric-card"><div class="value" id="eficienciaEquipo">0%</div><div class="label">Eficiencia del Equipo</div></div>
+                <div class="metric-card"><div class="value" id="contenidosProgramados">0</div><div class="label">Contenidos Programados</div></div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-container"><h3>📈 Evolución mensual</h3><canvas id="chartMensual"></canvas></div>
+                <div class="chart-container"><h3>🏆 Ranking por responsable</h3><canvas id="chartRanking"></canvas></div>
+                <div class="chart-container"><h3>📊 Distribución prioridad</h3><canvas id="chartPrioridadDist"></canvas></div>
+                <div class="chart-container"><h3>✅ Estado de contenidos</h3><canvas id="chartEstadoDist"></canvas></div>
+            </div>
+            <h3 style="margin-top:15px;">📋 Ranking de Responsables</h3>
+            <div class="ranking-table">
+                <table><thead><tr><th>Responsable</th><th>Total</th><th>Publicados</th><th>Pendientes</th><th>Eficiencia</th></tr></thead><tbody id="rankingTableBody"><tr><td colspan="5">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+
+        <!-- FILTROS -->
+        <div class="card">
+            <h2>🔍 Buscar y Filtrar</h2>
+            <div class="filters-grid">
+                <div class="filter-group"><label>📅 Mes</label>
+                    <select id="filterMes"><option value="">Todos</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+                </div>
+                <div class="filter-group"><label>🏫 Nivel</label>
+                    <select id="filterNivel">
+                        <option value="">Todos</option>
+                        <option value="Bachillerato Salitrillo">Bachillerato Salitrillo</option>
+                        <option value="Centro Universitario Los Ángeles">Centro Universitario Los Ángeles</option>
+                        <option value="Preescolar Centro">Preescolar Centro</option>
+                        <option value="Preescolar San Miguel">Preescolar San Miguel</option>
+                        <option value="Prepa CUA">Prepa CUA</option>
+                        <option value="Primaria Centro">Primaria Centro</option>
+                        <option value="Primaria San Miguel">Primaria San Miguel</option>
+                        <option value="Secundaria Centro">Secundaria Centro</option>
+                        <option value="Secundaria Salitrillo">Secundaria Salitrillo</option>
+                        <option value="Universidad Los Ángeles">Universidad Los Ángeles</option>
+                    </select>
+                </div>
+                <div class="filter-group"><label>👤 Responsable</label>
+                    <select id="filterResponsable">
+                        <option value="">Todos</option>
+                        <option value="MISS ANGELICA">MISS ANGELICA</option><option value="MISS BERE">MISS BERE</option><option value="MISS ELENA">MISS ELENA</option>
+                        <option value="MISS JAZMIN">MISS JAZMIN</option><option value="MISS JAZMIN ORTIZ">MISS JAZMIN ORTIZ</option><option value="MISS JESYCA">MISS JESYCA</option>
+                        <option value="MISS LETY">MISS LETY</option><option value="MISS LOLITA">MISS LOLITA</option><option value="MISS LUCY">MISS LUCY</option>
+                        <option value="MISS MALE">MISS MALE</option><option value="MISS MAYTE">MISS MAYTE</option><option value="MISS MONICA">MISS MONICA</option>
+                        <option value="MISS NIDIA">MISS NIDIA</option><option value="MISS OLGA">MISS OLGA</option><option value="MISS ROSARIO">MISS ROSARIO</option>
+                        <option value="MISS SOL">MISS SOL</option><option value="MISS TATIANA">MISS TATIANA</option><option value="MTRO. HUMBERTO">MTRO. HUMBERTO</option>
+                        <option value="PROF. FERNANDO">PROF. FERNANDO</option><option value="PROF. JESUS">PROF. JESUS</option><option value="PROF. JOEL">PROF. JOEL</option>
+                        <option value="PROF. MIGUEL">PROF. MIGUEL</option><option value="PROF. SAMUEL">PROF. SAMUEL</option>
+                    </select>
+                </div>
+                <div class="filter-group"><label>⭐ Prioridad</label><select id="filterPrioridad"><option value="">Todas</option><option value="Alta">Alta</option><option value="Media">Media</option><option value="Baja">Baja</option><option value="Programar">Programar</option></select></div>
+                <div class="filter-group"><label>✅ Estado</label><select id="filterEstado"><option value="">Todos</option><option value="LISTO">LISTO</option><option value="PENDIENTE">PENDIENTE</option><option value="EN REVISIÓN">EN REVISIÓN</option><option value="CORREGIR">CORREGIR</option></select></div>
+                <div class="filter-group"><label>📢 Publicado</label><select id="filterPublicado"><option value="">Todos</option><option value="Sí">Sí</option><option value="No">No</option></select></div>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn-filter" onclick="aplicarFiltros()">🔍 Aplicar</button>
+                <button class="btn-filter btn-clear" onclick="limpiarFiltros()">🗑️ Limpiar</button>
+                <button class="btn-filter" onclick="exportarReporte()">📎 Exportar CSV</button>
+            </div>
+        </div>
+
+        <!-- RESULTADOS -->
+        <div class="card">
+            <h2>📋 Resultados (<span id="resultCount">0</span>)</h2>
+            <div class="results-table">
+                <table style="width:100%">
+                    <thead><tr><th>Contenido</th><th>Fecha/Hora Registro</th><th>Fecha Prog.</th><th>Nivel</th><th>Responsable</th><th>Prioridad</th><th>Estado</th><th>Publicado</th></tr></thead>
+                    <tbody id="resultsTableBody"><tr><td colspan="8">Cargando...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <button class="fab" id="openModalBtn">➕</button>
+
+    <div id="eventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>✏️ Nuevo contenido</h2><button class="modal-close" id="closeModalBtn">&times;</button></div>
+            <div class="modal-body">
+                <div id="modalAlert" class="alert"></div>
+                
+                <!-- Mostrar fecha y hora del sistema -->
+                <div class="timestamp-info" id="systemTimestamp">
+                    Fecha y hora del sistema: Cargando...
+                </div>
+                
+                <form id="contentForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="required">📝 Contenido corto</label>
+                            <input type="text" id="contenido_corto" required placeholder="Ej: Proyecto Pymes, Spelling Bee...">
+                        </div>
+                        <div class="form-group">
+                            <label class="required">📅 Fecha publicación programada</label>
+                            <input type="date" id="fecha_prog" required>
+                            <div class="auto-date-info">Por defecto la fecha actual</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="required">✅ Estado / Revisión</label>
+                            <select id="revision" required>
+                                <option value="">Seleccionar</option>
+                                <option value="LISTO">✅ LISTO - Aprobado</option>
+                                <option value="PENDIENTE">⏳ PENDIENTE - Por revisar</option>
+                                <option value="EN REVISIÓN">🔍 EN REVISIÓN</option>
+                                <option value="CORREGIR">✏️ CORREGIR - Cambios necesarios</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="required">⭐ Prioridad</label>
+                            <select id="prioridad" required>
+                                <option value="Baja">🟢 Baja</option>
+                                <option value="Media" selected>🟡 Media</option>
+                                <option value="Alta">🔴 Alta</option>
+                                <option value="Programar">📅 PROGRAMAR - Agendar para después</option>
+                            </select>
+                        </div>
+                        <!-- Campo condicional para fecha de programación (aparece cuando prioridad = Programar) -->
+                        <div id="programarDateField" class="conditional-field full-width">
+                            <div class="date-field">
+                                <label>📅 Selecciona fecha para programar la publicación:</label>
+                                <input type="date" id="fecha_programacion" style="width:100%">
+                                <div class="field-hint" style="font-size:11px; color:#666; margin-top:5px;">⚠️ Esta fecha se usará como recordatorio de cuándo publicar este contenido</div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>📢 ¿Ya está publicado?</label>
+                            <select id="publicado">
+                                <option value="No">❌ No</option>
+                                <option value="Sí">✅ Sí</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>🌐 Plataforma</label>
+                            <select id="plataforma">
+                                <option value="">Seleccionar</option>
+                                <option value="Facebook">📘 Facebook</option>
+                                <option value="Instagram">📷 Instagram</option>
+                                <option value="Web">🌍 Web</option>
+                                <option value="Historia">⚡ Historia</option>
+                                <option value="Todas">🎯 Todas</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>🔗 Link</label>
+                            <input type="url" id="link" placeholder="https://...">
+                        </div>
+                        <div class="form-group">
+                            <label class="required">🏫 Nivel</label>
+                            <select id="nivel" required>
+                                <option value="">Seleccionar nivel...</option>
+                                <option value="Bachillerato Salitrillo">🎓 Bachillerato Salitrillo</option>
+                                <option value="Centro Universitario Los Ángeles">🏛️ Centro Universitario Los Ángeles</option>
+                                <option value="Preescolar Centro">🎨 Preescolar Centro</option>
+                                <option value="Preescolar San Miguel">🎨 Preescolar San Miguel</option>
+                                <option value="Prepa CUA">📚 Prepa CUA</option>
+                                <option value="Primaria Centro">📖 Primaria Centro</option>
+                                <option value="Primaria San Miguel">📖 Primaria San Miguel</option>
+                                <option value="Secundaria Centro">📘 Secundaria Centro</option>
+                                <option value="Secundaria Salitrillo">📘 Secundaria Salitrillo</option>
+                                <option value="Universidad Los Ángeles">🎓 Universidad Los Ángeles</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="required">👤 Responsable</label>
+                            <select id="responsable" required>
+                                <option value="">Seleccionar responsable...</option>
+                                <option value="MISS ANGELICA">MISS ANGELICA</option><option value="MISS BERE">MISS BERE</option><option value="MISS ELENA">MISS ELENA</option>
+                                <option value="MISS JAZMIN">MISS JAZMIN</option><option value="MISS JAZMIN ORTIZ">MISS JAZMIN ORTIZ</option><option value="MISS JESYCA">MISS JESYCA</option>
+                                <option value="MISS LETY">MISS LETY</option><option value="MISS LOLITA">MISS LOLITA</option><option value="MISS LUCY">MISS LUCY</option>
+                                <option value="MISS MALE">MISS MALE</option><option value="MISS MAYTE">MISS MAYTE</option><option value="MISS MONICA">MISS MONICA</option>
+                                <option value="MISS NIDIA">MISS NIDIA</option><option value="MISS OLGA">MISS OLGA</option><option value="MISS ROSARIO">MISS ROSARIO</option>
+                                <option value="MISS SOL">MISS SOL</option><option value="MISS TATIANA">MISS TATIANA</option><option value="MTRO. HUMBERTO">MTRO. HUMBERTO</option>
+                                <option value="PROF. FERNANDO">PROF. FERNANDO</option><option value="PROF. JESUS">PROF. JESUS</option><option value="PROF. JOEL">PROF. JOEL</option>
+                                <option value="PROF. MIGUEL">PROF. MIGUEL</option><option value="PROF. SAMUEL">PROF. SAMUEL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="required">✍️ Elaborado por</label>
+                            <select id="elaborado_por" required>
+                                <option value="">Seleccionar</option>
+                                <option value="Andrés">Andrés</option>
+                                <option value="Humberto">Humberto</option>
+                                <option value="Josymar">Josymar</option>
+                                <option value="Sarain">Sarain</option>
+                                <option value="Víctor">Víctor</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>👁️ Visualizaciones</label>
+                            <input type="number" id="visualizaciones" value="0" min="0">
+                        </div>
+                        <div class="full-width">
+                            <div class="form-group">
+                                <label class="required">📄 Copy completo</label>
+                                <textarea id="copy_completo" required rows="3" placeholder="Texto completo del contenido..."></textarea>
+                            </div>
+                        </div>
+                        <div class="full-width">
+                            <div class="form-group">
+                                <label>💬 Observaciones</label>
+                                <textarea id="observaciones" rows="2" placeholder="Notas internas..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-submit">💾 Guardar contenido</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymWp3hvw_cC_ZmIr8rmqERiNMOE5LYGncmABWsSj_6dDUD6sc_oYp7oq6Q3NpXMLJ3zg/exec';
+        let allData = [];
+        let charts = {};
+
+        // ============================================
+        // FECHA Y HORA DEL SISTEMA EN TIEMPO REAL
+        // ============================================
+        function actualizarTimestamp() {
+            const ahora = new Date();
+            const opciones = { 
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false
+            };
+            const fechaHora = ahora.toLocaleString('es-MX', opciones);
+            document.getElementById('systemTimestamp').innerHTML = `🕐 Fecha y hora del sistema: ${fechaHora}`;
+        }
+        
+        // Actualizar cada segundo
+        setInterval(actualizarTimestamp, 1000);
+        actualizarTimestamp();
+
+        // ============================================
+        // FECHA ACTUAL PARA PUBLICACIÓN
+        // ============================================
+        function getToday() { 
+            let d = new Date(); 
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; 
+        }
+        document.getElementById('fecha_prog').value = getToday();
+
+        // ============================================
+        // CAMPO CONDICIONAL: Cuando prioridad = "Programar"
+        // ============================================
+        const prioridadSelect = document.getElementById('prioridad');
+        const programarDateField = document.getElementById('programarDateField');
+        const fechaProgramacionInput = document.getElementById('fecha_programacion');
+        
+        function toggleProgramarDate() {
+            if (prioridadSelect.value === 'Programar') {
+                programarDateField.classList.add('show');
+                fechaProgramacionInput.required = true;
+                // Si no hay fecha seleccionada, sugerir una fecha futura (7 días después)
+                if (!fechaProgramacionInput.value) {
+                    let futureDate = new Date();
+                    futureDate.setDate(futureDate.getDate() + 7);
+                    fechaProgramacionInput.value = futureDate.toISOString().split('T')[0];
+                }
+            } else {
+                programarDateField.classList.remove('show');
+                fechaProgramacionInput.required = false;
+                fechaProgramacionInput.value = '';
+            }
+        }
+        
+        prioridadSelect.addEventListener('change', toggleProgramarDate);
+        toggleProgramarDate();
+
+        // ============================================
+        // MODAL
+        // ============================================
+        const modal = document.getElementById('eventModal');
+        document.getElementById('openModalBtn').onclick = () => { 
+            modal.classList.add('active'); 
+            document.body.style.overflow = 'hidden';
+            actualizarTimestamp(); // Actualizar al abrir
+        };
+        document.getElementById('closeModalBtn').onclick = () => { 
+            modal.classList.remove('active'); 
+            document.body.style.overflow = ''; 
+        };
+        modal.onclick = (e) => { 
+            if(e.target === modal) { 
+                modal.classList.remove('active'); 
+                document.body.style.overflow = ''; 
+            } 
+        };
+
+        // ============================================
+        // CARGAR DATOS DESDE GOOGLE SHEETS
+        // ============================================
+        async function loadData() {
+            try {
+                const res = await fetch(SCRIPT_URL);
+                const data = await res.json();
+                if(data.success && data.registros) { 
+                    allData = data.registros; 
+                    actualizarDashboard(); 
+                    aplicarFiltros(); 
+                }
+            } catch(e) { 
+                console.error(e);
+                document.getElementById('resultsTableBody').innerHTML = '<tr><td colspan="8">⚠️ Error al cargar datos</td></tr>';
+            }
+        }
+
+        // ============================================
+        // ACTUALIZAR DASHBOARD
+        // ============================================
+        function actualizarDashboard() {
+            const total = allData.length;
+            const publicados = allData.filter(r => r.PUBLICADO === 'Sí').length;
+            const programados = allData.filter(r => r.PRIORIDAD === 'Programar').length;
+            const tasaPublicacion = total === 0 ? 0 : ((publicados / total) * 100).toFixed(1);
+            const eficienciaEquipo = total === 0 ? 0 : ((publicados / total) * 100).toFixed(1);
+            
+            document.getElementById('tasaPublicacion').innerHTML = `${tasaPublicacion}%`;
+            document.getElementById('eficienciaEquipo').innerHTML = `${eficienciaEquipo}%`;
+            document.getElementById('contenidosProgramados').innerHTML = programados;
+            document.getElementById('tiempoPromedio').innerHTML = "2.5";
+            
+            actualizarGraficos(); 
+            actualizarRanking();
+        }
+
+        // ============================================
+        // GRÁFICOS
+        // ============================================
+        function actualizarGraficos() {
+            const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+            const mensual = Array(12).fill(0);
+            allData.forEach(r => { 
+                if(r.FECHA_PROG) { 
+                    let m = parseInt(r.FECHA_PROG.split('-')[1]) - 1; 
+                    if(m >= 0) mensual[m]++; 
+                } 
+            });
+            if(charts.mensual) charts.mensual.destroy();
+            charts.mensual = new Chart(document.getElementById('chartMensual'), { 
+                type:'bar', 
+                data:{ labels:meses, datasets:[{ label:'Publicaciones', data:mensual, backgroundColor:'#1e3c72' }] } 
+            });
+            
+            const respCount = {};
+            allData.forEach(r => { if(r.RESPONSABLE) respCount[r.RESPONSABLE] = (respCount[r.RESPONSABLE]||0)+1; });
+            const topResp = Object.entries(respCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+            if(charts.ranking) charts.ranking.destroy();
+            charts.ranking = new Chart(document.getElementById('chartRanking'), { 
+                type:'bar', 
+                data:{ labels:topResp.map(r=>r[0]), datasets:[{ label:'Contenidos', data:topResp.map(r=>r[1]), backgroundColor:'#2a5298' }] } 
+            });
+            
+            const prioridad = { Alta:0, Media:0, Baja:0, Programar:0 };
+            allData.forEach(r => { if(r.PRIORIDAD) prioridad[r.PRIORIDAD] = (prioridad[r.PRIORIDAD]||0) + 1; });
+            if(charts.prioridad) charts.prioridad.destroy();
+            charts.prioridad = new Chart(document.getElementById('chartPrioridadDist'), { 
+                type:'doughnut', 
+                data:{ labels:['Alta','Media','Baja','Programar'], datasets:[{ data:[prioridad.Alta, prioridad.Media, prioridad.Baja, prioridad.Programar], backgroundColor:['#dc3545','#ffc107','#28a745','#6c757d'] }] } 
+            });
+            
+            const estados = { LISTO:0, PENDIENTE:0, 'EN REVISIÓN':0, CORREGIR:0 };
+            allData.forEach(r => { if(r.REVISION && estados[r.REVISION]!==undefined) estados[r.REVISION]++; });
+            if(charts.estado) charts.estado.destroy();
+            charts.estado = new Chart(document.getElementById('chartEstadoDist'), { 
+                type:'pie', 
+                data:{ labels:Object.keys(estados), datasets:[{ data:Object.values(estados), backgroundColor:['#28a745','#ffc107','#17a2b8','#dc3545'] }] } 
+            });
+        }
+
+        // ============================================
+        // RANKING DE RESPONSABLES
+        // ============================================
+        function actualizarRanking() {
+            const respStats = {};
+            allData.forEach(r => { 
+                if(!r.RESPONSABLE) return; 
+                if(!respStats[r.RESPONSABLE]) respStats[r.RESPONSABLE] = { total:0, publicados:0, pendientes:0 }; 
+                respStats[r.RESPONSABLE].total++; 
+                if(r.PUBLICADO === 'Sí') respStats[r.RESPONSABLE].publicados++; 
+                else respStats[r.RESPONSABLE].pendientes++; 
+            });
+            const ranking = Object.entries(respStats).map(([nombre,stats])=>({
+                nombre, 
+                total: stats.total, 
+                publicados: stats.publicados, 
+                pendientes: stats.pendientes, 
+                eficiencia: stats.total === 0 ? 0 : ((stats.publicados/stats.total)*100).toFixed(1)
+            })).sort((a,b) => b.eficiencia - a.eficiencia);
+            
+            const tbody = document.getElementById('rankingTableBody');
+            if(ranking.length === 0) tbody.innerHTML = '<tr><td colspan="5">Sin datos</td></tr>';
+            else tbody.innerHTML = ranking.map(r => `
+                <tr>
+                    <td>${r.nombre}</td>
+                    <td>${r.total}</td>
+                    <td>${r.publicados}</td>
+                    <td>${r.pendientes}</td>
+                    <td><span class="badge ${r.eficiencia >= 70 ? 'published' : 'pending'}">${r.eficiencia}%</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // ============================================
+        // FILTROS
+        // ============================================
+        function filtrarDatos() {
+            const mes = document.getElementById('filterMes').value;
+            const nivel = document.getElementById('filterNivel').value;
+            const responsable = document.getElementById('filterResponsable').value;
+            const prioridad = document.getElementById('filterPrioridad').value;
+            const estado = document.getElementById('filterEstado').value;
+            const publicado = document.getElementById('filterPublicado').value;
+            
+            return allData.filter(item => {
+                if(mes && item.FECHA_PROG) { 
+                    let m = item.FECHA_PROG.split('-')[1]; 
+                    if(m !== mes) return false; 
+                }
+                if(nivel && item.NIVEL !== nivel) return false;
+                if(responsable && item.RESPONSABLE !== responsable) return false;
+                if(prioridad && item.PRIORIDAD !== prioridad) return false;
+                if(estado && item.REVISION !== estado) return false;
+                if(publicado && item.PUBLICADO !== publicado) return false;
+                return true;
+            });
+        }
+
+        function aplicarFiltros() {
+            const filtrados = filtrarDatos();
+            document.getElementById('resultCount').innerHTML = filtrados.length;
+            const tbody = document.getElementById('resultsTableBody');
+            if(filtrados.length === 0) tbody.innerHTML = '<tr><td colspan="8">📭 Sin resultados</td></tr>';
+            else tbody.innerHTML = filtrados.map(item => `
+                <tr>
+                    <td><strong>${item.CONTENIDO_CORTO || '-'}</strong></td>
+                    <td>${item.FECHA_REGISTRO || '-'}</td>
+                    <td>${item.FECHA_PROG || '-'}</td>
+                    <td>${item.NIVEL || '-'}</td>
+                    <td>${item.RESPONSABLE || '-'}</td>
+                    <td><span class="badge ${item.PRIORIDAD === 'Alta' ? 'alta' : (item.PRIORIDAD === 'Media' ? 'media' : (item.PRIORIDAD === 'Programar' ? 'programar' : 'baja'))}">${item.PRIORIDAD || 'Media'}</span></td>
+                    <td><span class="badge pending">${item.REVISION || '-'}</span></td>
+                    <td><span class="badge ${item.PUBLICADO === 'Sí' ? 'published' : 'pending'}">${item.PUBLICADO === 'Sí' ? '✅ Sí' : '❌ No'}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function limpiarFiltros() {
+            document.getElementById('filterMes').value = '';
+            document.getElementById('filterNivel').value = '';
+            document.getElementById('filterResponsable').value = '';
+            document.getElementById('filterPrioridad').value = '';
+            document.getElementById('filterEstado').value = '';
+            document.getElementById('filterPublicado').value = '';
+            aplicarFiltros();
+        }
+
+        function exportarReporte() {
+            const filtrados = filtrarDatos();
+            if(filtrados.length === 0) { alert('No hay datos para exportar'); return; }
+            let csv = "Contenido,Fecha Registro,Fecha Programada,Nivel,Responsable,Prioridad,Estado,Publicado\n";
+            filtrados.forEach(i => { 
+                csv += `"${i.CONTENIDO_CORTO || ''}","${i.FECHA_REGISTRO || ''}","${i.FECHA_PROG || ''}","${i.NIVEL || ''}","${i.RESPONSABLE || ''}","${i.PRIORIDAD || ''}","${i.REVISION || ''}","${i.PUBLICADO || ''}"\n`; 
+            });
+            const blob = new Blob(["\uFEFF" + csv], {type:"text/csv;charset=utf-8;"});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `reporte_gela_${getToday()}.csv`;
+            link.click();
+        }
+
+        // ============================================
+        // GUARDAR FORMULARIO
+        // ============================================
+        document.getElementById('contentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Obtener fecha y hora actual del sistema
+            const ahora = new Date();
+            const fechaHoraRegistro = ahora.toLocaleString('es-MX', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false
+            });
+            
+            const selectedPrioridad = document.getElementById('prioridad').value;
+            
+            // Validar que si la prioridad es "Programar", se haya seleccionado fecha
+            if (selectedPrioridad === 'Programar' && !fechaProgramacionInput.value) {
+                document.getElementById('modalAlert').className = 'alert error';
+                document.getElementById('modalAlert').innerHTML = '❌ Al seleccionar "PROGRAMAR", debes elegir una fecha de programación';
+                setTimeout(() => { document.getElementById('modalAlert').className = 'alert'; }, 3000);
+                return;
+            }
+            
+            const formData = {
+                contenido_corto: document.getElementById('contenido_corto').value,
+                copy_completo: document.getElementById('copy_completo').value,
+                fecha_prog: document.getElementById('fecha_prog').value,
+                fecha_registro: fechaHoraRegistro,  // Fecha y hora del sistema
+                revision: document.getElementById('revision').value,
+                publicado: document.getElementById('publicado').value,
+                plataforma: document.getElementById('plataforma').value,
+                link: document.getElementById('link').value || '',
+                nivel: document.getElementById('nivel').value,
+                responsable: document.getElementById('responsable').value,
+                elaborado_por: document.getElementById('elaborado_por').value,
+                visualizaciones: document.getElementById('visualizaciones').value || '0',
+                prioridad: selectedPrioridad,
+                observaciones: document.getElementById('observaciones').value || '',
+                fecha_programacion: selectedPrioridad === 'Programar' ? fechaProgramacionInput.value : ''
+            };
+            
+            const btn = document.querySelector('#contentForm .btn-submit');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Guardando...';
+            
+            try {
+                await fetch(SCRIPT_URL, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(formData) 
+                });
+                
+                document.getElementById('modalAlert').className = 'alert success';
+                document.getElementById('modalAlert').innerHTML = '✅ ¡Contenido guardado exitosamente!';
+                setTimeout(() => { document.getElementById('modalAlert').className = 'alert'; }, 2000);
+                
+                // Resetear formulario
+                document.getElementById('contentForm').reset();
+                document.getElementById('fecha_prog').value = getToday();
+                document.getElementById('publicado').value = 'No';
+                document.getElementById('prioridad').value = 'Media';
+                document.getElementById('visualizaciones').value = '0';
+                programarDateField.classList.remove('show');
+                fechaProgramacionInput.value = '';
+                
+                setTimeout(() => { 
+                    loadData(); 
+                    modal.classList.remove('active'); 
+                    document.body.style.overflow = ''; 
+                }, 1500);
+                
+            } catch(e) { 
+                console.error(e);
+                document.getElementById('modalAlert').className = 'alert error';
+                document.getElementById('modalAlert').innerHTML = '❌ Error al guardar. Verifica la conexión.';
+                setTimeout(() => { document.getElementById('modalAlert').className = 'alert'; }, 3000);
+            } finally { 
+                btn.disabled = false; 
+                btn.innerHTML = original;
+            }
+        });
+
+        // Inicializar
+        loadData();
+        setInterval(loadData, 60000);
+        console.log('🚀 GELA - Sistema de Gestor de Contenido - Versión con fecha/hora y Programar en prioridad');
+    </script>
+</body>
+</html>
