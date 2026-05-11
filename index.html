@@ -182,7 +182,6 @@
         .conditional-field { display: none; }
         .conditional-field.show { display: block; }
         .date-field { background: #f8f9fa; padding: 15px; border-radius: 12px; border-left: 4px solid #1e3c72; }
-        .date-field label { color: #1e3c72; margin-bottom: 10px; }
         .btn-submit {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: white;
@@ -206,6 +205,7 @@
             border-radius: 20px;
             font-size: 11px;
             font-weight: 600;
+            cursor: pointer;
         }
         .badge.alta { background: #f8d7da; color: #721c24; }
         .badge.media { background: #fff3cd; color: #856404; }
@@ -213,6 +213,31 @@
         .badge.published { background: #d4edda; color: #155724; }
         .badge.pending { background: #fff3cd; color: #856404; }
         .badge.programar { background: #cce5ff; color: #004085; }
+        .badge.editable { cursor: pointer; transition: transform 0.2s; }
+        .badge.editable:hover { transform: scale(1.05); opacity: 0.8; }
+        .btn-edit {
+            background: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-edit:hover { background: #1e3c72; }
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-delete:hover { background: #c82333; }
+        .action-buttons { display: flex; gap: 8px; }
         .timestamp-info {
             background: #e8f0fe;
             border-radius: 8px;
@@ -225,7 +250,6 @@
             margin-bottom: 15px;
             border-left: 3px solid #1e3c72;
         }
-        .timestamp-info::before { content: "🕐"; }
         .loading {
             display: inline-block;
             width: 18px;
@@ -245,8 +269,6 @@
             .dashboard-grid { grid-template-columns: 1fr; }
             .filters-grid { grid-template-columns: 1fr; }
             .fab { width: 50px; height: 50px; font-size: 24px; }
-            .logo-text .nombre { font-size: 1.2rem; }
-            .logo-container { padding: 10px 20px; }
         }
     </style>
 </head>
@@ -285,8 +307,8 @@
             </div>
             <h3 style="margin-top:15px;">📋 Ranking de Responsables</h3>
             <div class="ranking-table">
-                <table><thead><tr><th>Responsable</th><th>Total</th><th>Publicados</th><th>Pendientes</th><th>Eficiencia</th></tr></thead><tbody id="rankingTableBody"><tr><td colspan="5">Cargando...</td></tr></tbody>
-            </table>
+                <table><thead><tr><th>Responsable</th><th>Total</th><th>Publicados</th><th>Pendientes</th><th>Eficiencia</th></tr></thead><tbody id="rankingTableBody"><tr><td colspan="5">Cargando...</td></tr></tbody></table>
+            </div>
         </div>
 
         <!-- FILTROS -->
@@ -325,7 +347,7 @@
                     </select>
                 </div>
                 <div class="filter-group"><label>⭐ Prioridad</label><select id="filterPrioridad"><option value="">Todas</option><option value="Alta">Alta</option><option value="Media">Media</option><option value="Baja">Baja</option><option value="Programar">Programar</option></select></div>
-                <div class="filter-group"><label>✅ Estado</label><select id="filterEstado"><option value="">Todos</option><option value="LISTO">LISTO</option><option value="PENDIENTE">PENDIENTE</option><option value="EN REVISIÓN">EN REVISIÓN</option><option value="CORREGIR">CORREGIR</option></select></div>
+                <div class="filter-group"><label>✅ Estado</label><select id="filterEstado"><option value="">Todos</option><option value="LISTO">LISTO</option><option value="PENDIENTE">PENDIENTE</option><option value="EN REVISIÓN">EN REVISIÓN</option><option value="CORREGIR">CORREGIR</option><option value="PROGRAMAR">PROGRAMAR</option></select></div>
                 <div class="filter-group"><label>📢 Publicado</label><select id="filterPublicado"><option value="">Todos</option><option value="Sí">Sí</option><option value="No">No</option></select></div>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -340,8 +362,20 @@
             <h2>📋 Resultados (<span id="resultCount">0</span>)</h2>
             <div class="results-table">
                 <table style="width:100%">
-                    <thead><tr><th>Contenido</th><th>Fecha/Hora Registro</th><th>Fecha Prog.</th><th>Nivel</th><th>Responsable</th><th>Prioridad</th><th>Estado</th><th>Publicado</th></tr></thead>
-                    <tbody id="resultsTableBody"><tr><td colspan="8">Cargando...</td></tr></tbody>
+                    <thead>
+                        <tr>
+                            <th>Contenido</th>
+                            <th>Fecha Registro</th>
+                            <th>Fecha Prog.</th>
+                            <th>Nivel</th>
+                            <th>Responsable</th>
+                            <th>Prioridad</th>
+                            <th>Estado</th>
+                            <th>Publicado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody"><tr><td colspan="9">Cargando...</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -349,30 +383,22 @@
 
     <button class="fab" id="openModalBtn">➕</button>
 
+    <!-- MODAL PARA NUEVO/EDITAR CONTENIDO -->
     <div id="eventModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header"><h2>✏️ Nuevo contenido</h2><button class="modal-close" id="closeModalBtn">&times;</button></div>
+            <div class="modal-header">
+                <h2 id="modalTitle">✏️ Nuevo contenido</h2>
+                <button class="modal-close" id="closeModalBtn">&times;</button>
+            </div>
             <div class="modal-body">
                 <div id="modalAlert" class="alert"></div>
-                
-                <!-- Mostrar fecha y hora del sistema -->
-                <div class="timestamp-info" id="systemTimestamp">
-                    Fecha y hora del sistema: Cargando...
-                </div>
-                
+                <div class="timestamp-info" id="systemTimestamp">Fecha y hora del sistema: Cargando...</div>
                 <form id="contentForm">
+                    <input type="hidden" id="editId" value="">
                     <div class="form-grid">
-                        <div class="form-group">
-                            <label class="required">📝 Contenido corto</label>
-                            <input type="text" id="contenido_corto" required placeholder="Ej: Proyecto Pymes, Spelling Bee...">
-                        </div>
-                        <div class="form-group">
-                            <label class="required">📅 Fecha publicación programada</label>
-                            <input type="date" id="fecha_prog" required>
-                            <div class="auto-date-info">Por defecto la fecha actual</div>
-                        </div>
-                        <div class="form-group">
-                            <label class="required">✅ Estado / Revisión</label>
+                        <div class="form-group"><label class="required">📝 Contenido corto</label><input type="text" id="contenido_corto" required placeholder="Ej: Proyecto Pymes, Spelling Bee..."></div>
+                        <div class="form-group"><label class="required">📅 Fecha publicación</label><input type="date" id="fecha_prog" required></div>
+                        <div class="form-group"><label class="required">✅ Estado / Revisión</label>
                             <select id="revision" required>
                                 <option value="">Seleccionar</option>
                                 <option value="LISTO">✅ LISTO - Aprobado</option>
@@ -381,47 +407,25 @@
                                 <option value="CORREGIR">✏️ CORREGIR - Cambios necesarios</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label class="required">⭐ Prioridad</label>
+                        <div class="form-group"><label class="required">⭐ Prioridad</label>
                             <select id="prioridad" required>
                                 <option value="Baja">🟢 Baja</option>
                                 <option value="Media" selected>🟡 Media</option>
                                 <option value="Alta">🔴 Alta</option>
-                                <option value="Programar">📅 PROGRAMAR - Agendar para después</option>
+                                <option value="Programar">📅 PROGRAMAR - Agendar</option>
                             </select>
                         </div>
-                        <!-- Campo condicional para fecha de programación (aparece cuando prioridad = Programar) -->
                         <div id="programarDateField" class="conditional-field full-width">
                             <div class="date-field">
-                                <label>📅 Selecciona fecha para programar la publicación:</label>
-                                <input type="date" id="fecha_programacion" style="width:100%">
-                                <div class="field-hint" style="font-size:11px; color:#666; margin-top:5px;">⚠️ Esta fecha se usará como recordatorio de cuándo publicar este contenido</div>
+                                <label>📅 Fecha de programación:</label>
+                                <input type="date" id="fecha_programacion">
+                                <div class="field-hint" style="font-size:11px; color:#666; margin-top:5px;">⚠️ Fecha para publicar este contenido</div>
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label>📢 ¿Ya está publicado?</label>
-                            <select id="publicado">
-                                <option value="No">❌ No</option>
-                                <option value="Sí">✅ Sí</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>🌐 Plataforma</label>
-                            <select id="plataforma">
-                                <option value="">Seleccionar</option>
-                                <option value="Facebook">📘 Facebook</option>
-                                <option value="Instagram">📷 Instagram</option>
-                                <option value="Web">🌍 Web</option>
-                                <option value="Historia">⚡ Historia</option>
-                                <option value="Todas">🎯 Todas</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>🔗 Link</label>
-                            <input type="url" id="link" placeholder="https://...">
-                        </div>
-                        <div class="form-group">
-                            <label class="required">🏫 Nivel</label>
+                        <div class="form-group"><label>📢 ¿Publicado?</label><select id="publicado"><option value="No">❌ No</option><option value="Sí">✅ Sí</option></select></div>
+                        <div class="form-group"><label>🌐 Plataforma</label><select id="plataforma"><option value="">Seleccionar</option><option value="Facebook">📘 Facebook</option><option value="Instagram">📷 Instagram</option><option value="Web">🌍 Web</option><option value="Historia">⚡ Historia</option><option value="Todas">🎯 Todas</option></select></div>
+                        <div class="form-group"><label>🔗 Link</label><input type="url" id="link" placeholder="https://"></div>
+                        <div class="form-group"><label class="required">🏫 Nivel</label>
                             <select id="nivel" required>
                                 <option value="">Seleccionar nivel...</option>
                                 <option value="Bachillerato Salitrillo">🎓 Bachillerato Salitrillo</option>
@@ -436,8 +440,7 @@
                                 <option value="Universidad Los Ángeles">🎓 Universidad Los Ángeles</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label class="required">👤 Responsable</label>
+                        <div class="form-group"><label class="required">👤 Responsable</label>
                             <select id="responsable" required>
                                 <option value="">Seleccionar responsable...</option>
                                 <option value="MISS ANGELICA">MISS ANGELICA</option><option value="MISS BERE">MISS BERE</option><option value="MISS ELENA">MISS ELENA</option>
@@ -450,33 +453,10 @@
                                 <option value="PROF. MIGUEL">PROF. MIGUEL</option><option value="PROF. SAMUEL">PROF. SAMUEL</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label class="required">✍️ Elaborado por</label>
-                            <select id="elaborado_por" required>
-                                <option value="">Seleccionar</option>
-                                <option value="Andrés">Andrés</option>
-                                <option value="Humberto">Humberto</option>
-                                <option value="Josymar">Josymar</option>
-                                <option value="Sarain">Sarain</option>
-                                <option value="Víctor">Víctor</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>👁️ Visualizaciones</label>
-                            <input type="number" id="visualizaciones" value="0" min="0">
-                        </div>
-                        <div class="full-width">
-                            <div class="form-group">
-                                <label class="required">📄 Copy completo</label>
-                                <textarea id="copy_completo" required rows="3" placeholder="Texto completo del contenido..."></textarea>
-                            </div>
-                        </div>
-                        <div class="full-width">
-                            <div class="form-group">
-                                <label>💬 Observaciones</label>
-                                <textarea id="observaciones" rows="2" placeholder="Notas internas..."></textarea>
-                            </div>
-                        </div>
+                        <div class="form-group"><label class="required">✍️ Elaborado por</label><select id="elaborado_por" required><option value="">Seleccionar</option><option value="Andrés">Andrés</option><option value="Humberto">Humberto</option><option value="Josymar">Josymar</option><option value="Sarain">Sarain</option><option value="Víctor">Víctor</option></select></div>
+                        <div class="form-group"><label>👁️ Visualizaciones</label><input type="number" id="visualizaciones" value="0" min="0"></div>
+                        <div class="full-width"><div class="form-group"><label class="required">📄 Copy completo</label><textarea id="copy_completo" required rows="3" placeholder="Texto completo del contenido..."></textarea></div></div>
+                        <div class="full-width"><div class="form-group"><label>💬 Observaciones</label><textarea id="observaciones" rows="2" placeholder="Notas internas..."></textarea></div></div>
                     </div>
                     <button type="submit" class="btn-submit">💾 Guardar contenido</button>
                 </form>
@@ -484,215 +464,274 @@
         </div>
     </div>
 
+    <!-- MODAL PARA CAMBIAR ESTADO RÁPIDO -->
+    <div id="estadoModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header"><h2>📝 Cambiar Estado</h2><button class="modal-close" id="closeEstadoModalBtn">&times;</button></div>
+            <div class="modal-body">
+                <div id="estadoModalAlert" class="alert"></div>
+                <p><strong>Contenido:</strong> <span id="estadoContenidoTitulo"></span></p>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>✅ Selecciona nuevo estado:</label>
+                    <select id="nuevoEstado" class="form-control" style="width:100%; padding:10px; border-radius:8px; border:2px solid #e0e0e0;">
+                        <option value="LISTO">✅ LISTO - Aprobado</option>
+                        <option value="PENDIENTE">⏳ PENDIENTE - Por revisar</option>
+                        <option value="EN REVISIÓN">🔍 EN REVISIÓN</option>
+                        <option value="CORREGIR">✏️ CORREGIR - Cambios necesarios</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>📢 ¿Publicado?</label>
+                    <select id="nuevoPublicado" class="form-control" style="width:100%; padding:10px; border-radius:8px; border:2px solid #e0e0e0;">
+                        <option value="No">❌ No</option>
+                        <option value="Sí">✅ Sí</option>
+                    </select>
+                </div>
+                <button class="btn-submit" onclick="guardarCambioEstado()" style="margin-top: 15px;">💾 Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymWp3hvw_cC_ZmIr8rmqERiNMOE5LYGncmABWsSj_6dDUD6sc_oYp7oq6Q3NpXMLJ3zg/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzv5rZJUgIeNjBIJq2CxaA38ztom2ZjxGB6KV599acKjYtTQmtkCDESZSSDfyJAfsguiw/exec';
         let allData = [];
         let charts = {};
+        let estadoActualId = null;
 
-        // ============================================
-        // FECHA Y HORA DEL SISTEMA EN TIEMPO REAL
-        // ============================================
+        function getToday() { let d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+        document.getElementById('fecha_prog').value = getToday();
+
+        // Timestamp en tiempo real
         function actualizarTimestamp() {
             const ahora = new Date();
-            const opciones = { 
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit',
-                hour12: false
-            };
-            const fechaHora = ahora.toLocaleString('es-MX', opciones);
-            document.getElementById('systemTimestamp').innerHTML = `🕐 Fecha y hora del sistema: ${fechaHora}`;
+            const opciones = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('systemTimestamp').innerHTML = `🕐 Fecha y hora del sistema: ${ahora.toLocaleString('es-MX', opciones)}`;
         }
-        
-        // Actualizar cada segundo
         setInterval(actualizarTimestamp, 1000);
         actualizarTimestamp();
 
-        // ============================================
-        // FECHA ACTUAL PARA PUBLICACIÓN
-        // ============================================
-        function getToday() { 
-            let d = new Date(); 
-            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; 
-        }
-        document.getElementById('fecha_prog').value = getToday();
-
-        // ============================================
-        // CAMPO CONDICIONAL: Cuando prioridad = "Programar"
-        // ============================================
+        // Campo condicional Programar
         const prioridadSelect = document.getElementById('prioridad');
-        const programarDateField = document.getElementById('programarDateField');
-        const fechaProgramacionInput = document.getElementById('fecha_programacion');
-        
+        const programarField = document.getElementById('programarDateField');
+        const fechaProgramacion = document.getElementById('fecha_programacion');
         function toggleProgramarDate() {
             if (prioridadSelect.value === 'Programar') {
-                programarDateField.classList.add('show');
-                fechaProgramacionInput.required = true;
-                // Si no hay fecha seleccionada, sugerir una fecha futura (7 días después)
-                if (!fechaProgramacionInput.value) {
-                    let futureDate = new Date();
-                    futureDate.setDate(futureDate.getDate() + 7);
-                    fechaProgramacionInput.value = futureDate.toISOString().split('T')[0];
-                }
-            } else {
-                programarDateField.classList.remove('show');
-                fechaProgramacionInput.required = false;
-                fechaProgramacionInput.value = '';
-            }
+                programarField.classList.add('show');
+                fechaProgramacion.required = true;
+                if (!fechaProgramacion.value) { let d = new Date(); d.setDate(d.getDate() + 7); fechaProgramacion.value = d.toISOString().split('T')[0]; }
+            } else { programarField.classList.remove('show'); fechaProgramacion.required = false; fechaProgramacion.value = ''; }
         }
-        
         prioridadSelect.addEventListener('change', toggleProgramarDate);
         toggleProgramarDate();
 
-        // ============================================
-        // MODAL
-        // ============================================
+        // MODALES
         const modal = document.getElementById('eventModal');
-        document.getElementById('openModalBtn').onclick = () => { 
-            modal.classList.add('active'); 
-            document.body.style.overflow = 'hidden';
-            actualizarTimestamp(); // Actualizar al abrir
-        };
-        document.getElementById('closeModalBtn').onclick = () => { 
-            modal.classList.remove('active'); 
-            document.body.style.overflow = ''; 
-        };
-        modal.onclick = (e) => { 
-            if(e.target === modal) { 
-                modal.classList.remove('active'); 
-                document.body.style.overflow = ''; 
-            } 
-        };
+        const estadoModal = document.getElementById('estadoModal');
+        const openModalBtn = document.getElementById('openModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const closeEstadoModalBtn = document.getElementById('closeEstadoModalBtn');
 
-        // ============================================
-        // CARGAR DATOS DESDE GOOGLE SHEETS
-        // ============================================
+        function abrirModal(editItem = null) {
+            if (editItem) {
+                document.getElementById('modalTitle').innerHTML = '✏️ Editar contenido';
+                document.getElementById('editId').value = editItem.ID_UNICO || '';
+                document.getElementById('contenido_corto').value = editItem.CONTENIDO_CORTO || '';
+                document.getElementById('copy_completo').value = editItem.COPY_COMPLETO || '';
+                document.getElementById('fecha_prog').value = editItem.FECHA_PROG || getToday();
+                document.getElementById('revision').value = editItem.REVISION || 'PENDIENTE';
+                document.getElementById('publicado').value = editItem.PUBLICADO || 'No';
+                document.getElementById('plataforma').value = editItem.PLATAFORMA || '';
+                document.getElementById('link').value = editItem.LINK || '';
+                document.getElementById('nivel').value = editItem.NIVEL || '';
+                document.getElementById('responsable').value = editItem.RESPONSABLE || '';
+                document.getElementById('elaborado_por').value = editItem.ELABORADO_POR || '';
+                document.getElementById('visualizaciones').value = editItem.VISUALIZACIONES || '0';
+                document.getElementById('prioridad').value = editItem.PRIORIDAD || 'Media';
+                document.getElementById('observaciones').value = editItem.OBSERVACIONES || '';
+                if (editItem.PRIORIDAD === 'Programar') {
+                    document.getElementById('fecha_programacion').value = editItem.FECHA_PROGRAMACION || '';
+                    setTimeout(() => toggleProgramarDate(), 100);
+                }
+            } else {
+                document.getElementById('modalTitle').innerHTML = '✏️ Nuevo contenido';
+                document.getElementById('editId').value = '';
+                document.getElementById('contentForm').reset();
+                document.getElementById('fecha_prog').value = getToday();
+                document.getElementById('publicado').value = 'No';
+                document.getElementById('prioridad').value = 'Media';
+                document.getElementById('visualizaciones').value = '0';
+                programarField.classList.remove('show');
+            }
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        openModalBtn.onclick = () => abrirModal();
+        closeModalBtn.onclick = () => { modal.classList.remove('active'); document.body.style.overflow = ''; };
+        modal.onclick = (e) => { if(e.target === modal) { modal.classList.remove('active'); document.body.style.overflow = ''; } };
+        closeEstadoModalBtn.onclick = () => { estadoModal.classList.remove('active'); document.body.style.overflow = ''; };
+        estadoModal.onclick = (e) => { if(e.target === estadoModal) { estadoModal.classList.remove('active'); document.body.style.overflow = ''; } };
+
+        function abrirModalEstado(id, titulo, estadoActual, publicadoActual) {
+            estadoActualId = id;
+            document.getElementById('estadoContenidoTitulo').innerHTML = titulo;
+            document.getElementById('nuevoEstado').value = estadoActual || 'PENDIENTE';
+            document.getElementById('nuevoPublicado').value = publicadoActual || 'No';
+            estadoModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function guardarCambioEstado() {
+            const nuevoEstado = document.getElementById('nuevoEstado').value;
+            const nuevoPublicado = document.getElementById('nuevoPublicado').value;
+            
+            const item = allData.find(r => r.ID_UNICO === estadoActualId);
+            if (!item) return;
+            
+            const formData = {
+                id: estadoActualId,
+                contenido_corto: item.CONTENIDO_CORTO,
+                copy_completo: item.COPY_COMPLETO,
+                fecha_prog: item.FECHA_PROG,
+                revision: nuevoEstado,
+                publicado: nuevoPublicado,
+                plataforma: item.PLATAFORMA || '',
+                link: item.LINK || '',
+                nivel: item.NIVEL,
+                responsable: item.RESPONSABLE,
+                elaborado_por: item.ELABORADO_POR,
+                visualizaciones: item.VISUALIZACIONES || '0',
+                prioridad: item.PRIORIDAD || 'Media',
+                observaciones: item.OBSERVACIONES || '',
+                fecha_programacion: item.FECHA_PROGRAMACION || '',
+                esActualizacion: true
+            };
+            
+            guardarDatos(formData, true);
+        }
+
+        async function guardarDatos(formData, esActualizacion = false) {
+            const btn = document.querySelector('#contentForm .btn-submit');
+            const alertDiv = document.getElementById('modalAlert');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Guardando...';
+            
+            try {
+                await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
+                alertDiv.className = 'alert success';
+                alertDiv.innerHTML = esActualizacion ? '✅ ¡Contenido actualizado!' : '✅ ¡Contenido guardado!';
+                setTimeout(() => { alertDiv.className = 'alert'; }, 2000);
+                if (!esActualizacion) document.getElementById('contentForm').reset();
+                document.getElementById('fecha_prog').value = getToday();
+                setTimeout(() => { loadData(); modal.classList.remove('active'); estadoModal.classList.remove('active'); document.body.style.overflow = ''; }, 1000);
+            } catch(e) {
+                alertDiv.className = 'alert error';
+                alertDiv.innerHTML = '❌ Error al guardar';
+                setTimeout(() => { alertDiv.className = 'alert'; }, 2000);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '💾 Guardar contenido';
+            }
+        }
+
+        async function eliminarContenido(id, titulo) {
+            if (confirm(`¿Eliminar "${titulo}"? Esta acción no se puede deshacer.`)) {
+                const formData = { id: id, eliminar: true };
+                try {
+                    await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
+                    alert('✅ Contenido eliminado');
+                    loadData();
+                } catch(e) { alert('❌ Error al eliminar'); }
+            }
+        }
+
+        document.getElementById('contentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const editId = document.getElementById('editId').value;
+            const selectedPrioridad = document.getElementById('prioridad').value;
+            if (selectedPrioridad === 'Programar' && !fechaProgramacion.value) {
+                document.getElementById('modalAlert').className = 'alert error';
+                document.getElementById('modalAlert').innerHTML = '❌ Debes elegir una fecha de programación';
+                setTimeout(() => { document.getElementById('modalAlert').className = 'alert'; }, 3000);
+                return;
+            }
+            const formData = {
+                id: editId || null,
+                contenido_corto: document.getElementById('contenido_corto').value,
+                copy_completo: document.getElementById('copy_completo').value,
+                fecha_prog: document.getElementById('fecha_prog').value,
+                fecha_registro: new Date().toLocaleString('es-MX'),
+                revision: document.getElementById('revision').value,
+                publicado: document.getElementById('publicado').value,
+                plataforma: document.getElementById('plataforma').value,
+                link: document.getElementById('link').value || '',
+                nivel: document.getElementById('nivel').value,
+                responsable: document.getElementById('responsable').value,
+                elaborado_por: document.getElementById('elaborado_por').value,
+                visualizaciones: document.getElementById('visualizaciones').value || '0',
+                prioridad: selectedPrioridad,
+                observaciones: document.getElementById('observaciones').value || '',
+                fecha_programacion: selectedPrioridad === 'Programar' ? fechaProgramacion.value : '',
+                esActualizacion: !!editId
+            };
+            guardarDatos(formData, !!editId);
+        });
+
         async function loadData() {
             try {
                 const res = await fetch(SCRIPT_URL);
                 const data = await res.json();
-                if(data.success && data.registros) { 
-                    allData = data.registros; 
-                    actualizarDashboard(); 
-                    aplicarFiltros(); 
-                }
-            } catch(e) { 
-                console.error(e);
-                document.getElementById('resultsTableBody').innerHTML = '<tr><td colspan="8">⚠️ Error al cargar datos</td></tr>';
-            }
+                if (data.success && data.registros) { allData = data.registros; actualizarDashboard(); aplicarFiltros(); }
+            } catch(e) { console.error(e); document.getElementById('resultsTableBody').innerHTML = '<tr><td colspan="9">⚠️ Error al cargar datos</td></tr>'; }
         }
 
-        // ============================================
-        // ACTUALIZAR DASHBOARD
-        // ============================================
         function actualizarDashboard() {
-            const total = allData.length;
-            const publicados = allData.filter(r => r.PUBLICADO === 'Sí').length;
-            const programados = allData.filter(r => r.PRIORIDAD === 'Programar').length;
-            const tasaPublicacion = total === 0 ? 0 : ((publicados / total) * 100).toFixed(1);
-            const eficienciaEquipo = total === 0 ? 0 : ((publicados / total) * 100).toFixed(1);
-            
-            document.getElementById('tasaPublicacion').innerHTML = `${tasaPublicacion}%`;
-            document.getElementById('eficienciaEquipo').innerHTML = `${eficienciaEquipo}%`;
+            const total = allData.length, publicados = allData.filter(r => r.PUBLICADO === 'Sí').length, programados = allData.filter(r => r.PRIORIDAD === 'Programar').length;
+            document.getElementById('tasaPublicacion').innerHTML = total === 0 ? 0 : ((publicados/total)*100).toFixed(1) + '%';
+            document.getElementById('eficienciaEquipo').innerHTML = total === 0 ? 0 : ((publicados/total)*100).toFixed(1) + '%';
             document.getElementById('contenidosProgramados').innerHTML = programados;
             document.getElementById('tiempoPromedio').innerHTML = "2.5";
-            
-            actualizarGraficos(); 
-            actualizarRanking();
+            actualizarGraficos(); actualizarRanking();
         }
 
-        // ============================================
-        // GRÁFICOS
-        // ============================================
         function actualizarGraficos() {
             const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
             const mensual = Array(12).fill(0);
-            allData.forEach(r => { 
-                if(r.FECHA_PROG) { 
-                    let m = parseInt(r.FECHA_PROG.split('-')[1]) - 1; 
-                    if(m >= 0) mensual[m]++; 
-                } 
-            });
+            allData.forEach(r => { if(r.FECHA_PROG) { let m = parseInt(r.FECHA_PROG.split('-')[1]) - 1; if(m >= 0) mensual[m]++; } });
             if(charts.mensual) charts.mensual.destroy();
-            charts.mensual = new Chart(document.getElementById('chartMensual'), { 
-                type:'bar', 
-                data:{ labels:meses, datasets:[{ label:'Publicaciones', data:mensual, backgroundColor:'#1e3c72' }] } 
-            });
+            charts.mensual = new Chart(document.getElementById('chartMensual'), { type:'bar', data:{ labels:meses, datasets:[{ label:'Publicaciones', data:mensual, backgroundColor:'#1e3c72' }] } });
             
             const respCount = {};
             allData.forEach(r => { if(r.RESPONSABLE) respCount[r.RESPONSABLE] = (respCount[r.RESPONSABLE]||0)+1; });
             const topResp = Object.entries(respCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
             if(charts.ranking) charts.ranking.destroy();
-            charts.ranking = new Chart(document.getElementById('chartRanking'), { 
-                type:'bar', 
-                data:{ labels:topResp.map(r=>r[0]), datasets:[{ label:'Contenidos', data:topResp.map(r=>r[1]), backgroundColor:'#2a5298' }] } 
-            });
+            charts.ranking = new Chart(document.getElementById('chartRanking'), { type:'bar', data:{ labels:topResp.map(r=>r[0]), datasets:[{ label:'Contenidos', data:topResp.map(r=>r[1]), backgroundColor:'#2a5298' }] } });
             
             const prioridad = { Alta:0, Media:0, Baja:0, Programar:0 };
             allData.forEach(r => { if(r.PRIORIDAD) prioridad[r.PRIORIDAD] = (prioridad[r.PRIORIDAD]||0) + 1; });
             if(charts.prioridad) charts.prioridad.destroy();
-            charts.prioridad = new Chart(document.getElementById('chartPrioridadDist'), { 
-                type:'doughnut', 
-                data:{ labels:['Alta','Media','Baja','Programar'], datasets:[{ data:[prioridad.Alta, prioridad.Media, prioridad.Baja, prioridad.Programar], backgroundColor:['#dc3545','#ffc107','#28a745','#6c757d'] }] } 
-            });
+            charts.prioridad = new Chart(document.getElementById('chartPrioridadDist'), { type:'doughnut', data:{ labels:['Alta','Media','Baja','Programar'], datasets:[{ data:[prioridad.Alta, prioridad.Media, prioridad.Baja, prioridad.Programar], backgroundColor:['#dc3545','#ffc107','#28a745','#6c757d'] }] } });
             
             const estados = { LISTO:0, PENDIENTE:0, 'EN REVISIÓN':0, CORREGIR:0 };
             allData.forEach(r => { if(r.REVISION && estados[r.REVISION]!==undefined) estados[r.REVISION]++; });
             if(charts.estado) charts.estado.destroy();
-            charts.estado = new Chart(document.getElementById('chartEstadoDist'), { 
-                type:'pie', 
-                data:{ labels:Object.keys(estados), datasets:[{ data:Object.values(estados), backgroundColor:['#28a745','#ffc107','#17a2b8','#dc3545'] }] } 
-            });
+            charts.estado = new Chart(document.getElementById('chartEstadoDist'), { type:'pie', data:{ labels:Object.keys(estados), datasets:[{ data:Object.values(estados), backgroundColor:['#28a745','#ffc107','#17a2b8','#dc3545'] }] } });
         }
 
-        // ============================================
-        // RANKING DE RESPONSABLES
-        // ============================================
         function actualizarRanking() {
             const respStats = {};
-            allData.forEach(r => { 
-                if(!r.RESPONSABLE) return; 
-                if(!respStats[r.RESPONSABLE]) respStats[r.RESPONSABLE] = { total:0, publicados:0, pendientes:0 }; 
-                respStats[r.RESPONSABLE].total++; 
-                if(r.PUBLICADO === 'Sí') respStats[r.RESPONSABLE].publicados++; 
-                else respStats[r.RESPONSABLE].pendientes++; 
-            });
-            const ranking = Object.entries(respStats).map(([nombre,stats])=>({
-                nombre, 
-                total: stats.total, 
-                publicados: stats.publicados, 
-                pendientes: stats.pendientes, 
-                eficiencia: stats.total === 0 ? 0 : ((stats.publicados/stats.total)*100).toFixed(1)
-            })).sort((a,b) => b.eficiencia - a.eficiencia);
-            
+            allData.forEach(r => { if(!r.RESPONSABLE) return; if(!respStats[r.RESPONSABLE]) respStats[r.RESPONSABLE] = { total:0, publicados:0, pendientes:0 }; respStats[r.RESPONSABLE].total++; if(r.PUBLICADO === 'Sí') respStats[r.RESPONSABLE].publicados++; else respStats[r.RESPONSABLE].pendientes++; });
+            const ranking = Object.entries(respStats).map(([nombre,stats])=>({ nombre, total:stats.total, publicados:stats.publicados, pendientes:stats.pendientes, eficiencia:stats.total===0?0:((stats.publicados/stats.total)*100).toFixed(1) })).sort((a,b)=>b.eficiencia - a.eficiencia);
             const tbody = document.getElementById('rankingTableBody');
-            if(ranking.length === 0) tbody.innerHTML = '<tr><td colspan="5">Sin datos</td></tr>';
-            else tbody.innerHTML = ranking.map(r => `
-                <tr>
-                    <td>${r.nombre}</td>
-                    <td>${r.total}</td>
-                    <td>${r.publicados}</td>
-                    <td>${r.pendientes}</td>
-                    <td><span class="badge ${r.eficiencia >= 70 ? 'published' : 'pending'}">${r.eficiencia}%</span></td>
-                </tr>
-            `).join('');
+            if(ranking.length===0) tbody.innerHTML='<tr><td colspan="5">Sin datos</td></tr>';
+            else tbody.innerHTML = ranking.map(r => `<tr><td>${r.nombre}</td><td>${r.total}</td><td>${r.publicados}</td><td>${r.pendientes}</td><td><span class="badge ${r.eficiencia>=70?'published':'pending'}">${r.eficiencia}%</span></td></tr>`).join('');
         }
 
-        // ============================================
-        // FILTROS
-        // ============================================
         function filtrarDatos() {
-            const mes = document.getElementById('filterMes').value;
-            const nivel = document.getElementById('filterNivel').value;
-            const responsable = document.getElementById('filterResponsable').value;
-            const prioridad = document.getElementById('filterPrioridad').value;
-            const estado = document.getElementById('filterEstado').value;
-            const publicado = document.getElementById('filterPublicado').value;
-            
+            const mes = document.getElementById('filterMes').value, nivel = document.getElementById('filterNivel').value, responsable = document.getElementById('filterResponsable').value;
+            const prioridad = document.getElementById('filterPrioridad').value, estado = document.getElementById('filterEstado').value, publicado = document.getElementById('filterPublicado').value;
             return allData.filter(item => {
-                if(mes && item.FECHA_PROG) { 
-                    let m = item.FECHA_PROG.split('-')[1]; 
-                    if(m !== mes) return false; 
-                }
+                if(mes && item.FECHA_PROG) { let m = item.FECHA_PROG.split('-')[1]; if(m !== mes) return false; }
                 if(nivel && item.NIVEL !== nivel) return false;
                 if(responsable && item.RESPONSABLE !== responsable) return false;
                 if(prioridad && item.PRIORIDAD !== prioridad) return false;
@@ -706,7 +745,7 @@
             const filtrados = filtrarDatos();
             document.getElementById('resultCount').innerHTML = filtrados.length;
             const tbody = document.getElementById('resultsTableBody');
-            if(filtrados.length === 0) tbody.innerHTML = '<tr><td colspan="8">📭 Sin resultados</td></tr>';
+            if(filtrados.length === 0) tbody.innerHTML = '<tr><td colspan="9">📭 Sin resultados</td></tr>';
             else tbody.innerHTML = filtrados.map(item => `
                 <tr>
                     <td><strong>${item.CONTENIDO_CORTO || '-'}</strong></td>
@@ -714,126 +753,36 @@
                     <td>${item.FECHA_PROG || '-'}</td>
                     <td>${item.NIVEL || '-'}</td>
                     <td>${item.RESPONSABLE || '-'}</td>
-                    <td><span class="badge ${item.PRIORIDAD === 'Alta' ? 'alta' : (item.PRIORIDAD === 'Media' ? 'media' : (item.PRIORIDAD === 'Programar' ? 'programar' : 'baja'))}">${item.PRIORIDAD || 'Media'}</span></td>
-                    <td><span class="badge pending">${item.REVISION || '-'}</span></td>
+                    <td><span class="badge editable ${item.PRIORIDAD === 'Alta' ? 'alta' : (item.PRIORIDAD === 'Media' ? 'media' : (item.PRIORIDAD === 'Programar' ? 'programar' : 'baja'))}" onclick="abrirModalEstado('${item.ID_UNICO}', '${item.CONTENIDO_CORTO?.replace(/'/g, "\\'") || ''}', '${item.REVISION || 'PENDIENTE'}', '${item.PUBLICADO || 'No'}')" title="Click para cambiar estado">${item.PRIORIDAD || 'Media'}</span></td>
+                    <td><span class="badge editable pending" onclick="abrirModalEstado('${item.ID_UNICO}', '${item.CONTENIDO_CORTO?.replace(/'/g, "\\'") || ''}', '${item.REVISION || 'PENDIENTE'}', '${item.PUBLICADO || 'No'}')" title="Click para cambiar estado">${item.REVISION || '-'}</span></td>
                     <td><span class="badge ${item.PUBLICADO === 'Sí' ? 'published' : 'pending'}">${item.PUBLICADO === 'Sí' ? '✅ Sí' : '❌ No'}</span></td>
-                </tr>
-            `).join('');
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-edit" onclick="abrirModal(${JSON.stringify(item).replace(/"/g, '&quot;')})">✏️ Editar</button>
+                            <button class="btn-delete" onclick="eliminarContenido('${item.ID_UNICO}', '${item.CONTENIDO_CORTO?.replace(/'/g, "\\'") || ''}')">🗑️ Eliminar</button>
+                        </div>
+                     </td>
+                 `
+            ).join('');
         }
 
         function limpiarFiltros() {
-            document.getElementById('filterMes').value = '';
-            document.getElementById('filterNivel').value = '';
-            document.getElementById('filterResponsable').value = '';
-            document.getElementById('filterPrioridad').value = '';
-            document.getElementById('filterEstado').value = '';
-            document.getElementById('filterPublicado').value = '';
+            document.getElementById('filterMes').value = ''; document.getElementById('filterNivel').value = ''; document.getElementById('filterResponsable').value = '';
+            document.getElementById('filterPrioridad').value = ''; document.getElementById('filterEstado').value = ''; document.getElementById('filterPublicado').value = '';
             aplicarFiltros();
         }
 
         function exportarReporte() {
             const filtrados = filtrarDatos();
-            if(filtrados.length === 0) { alert('No hay datos para exportar'); return; }
+            if(filtrados.length === 0) { alert('No hay datos'); return; }
             let csv = "Contenido,Fecha Registro,Fecha Programada,Nivel,Responsable,Prioridad,Estado,Publicado\n";
-            filtrados.forEach(i => { 
-                csv += `"${i.CONTENIDO_CORTO || ''}","${i.FECHA_REGISTRO || ''}","${i.FECHA_PROG || ''}","${i.NIVEL || ''}","${i.RESPONSABLE || ''}","${i.PRIORIDAD || ''}","${i.REVISION || ''}","${i.PUBLICADO || ''}"\n`; 
-            });
-            const blob = new Blob(["\uFEFF" + csv], {type:"text/csv;charset=utf-8;"});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `reporte_gela_${getToday()}.csv`;
-            link.click();
+            filtrados.forEach(i => { csv += `"${i.CONTENIDO_CORTO || ''}","${i.FECHA_REGISTRO || ''}","${i.FECHA_PROG || ''}","${i.NIVEL || ''}","${i.RESPONSABLE || ''}","${i.PRIORIDAD || ''}","${i.REVISION || ''}","${i.PUBLICADO || ''}"\n`; });
+            const blob = new Blob(["\uFEFF" + csv], {type:"text/csv"}); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `reporte_gela_${getToday()}.csv`; link.click();
         }
 
-        // ============================================
-        // GUARDAR FORMULARIO
-        // ============================================
-        document.getElementById('contentForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            // Obtener fecha y hora actual del sistema
-            const ahora = new Date();
-            const fechaHoraRegistro = ahora.toLocaleString('es-MX', {
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit',
-                hour12: false
-            });
-            
-            const selectedPrioridad = document.getElementById('prioridad').value;
-            
-            // Validar que si la prioridad es "Programar", se haya seleccionado fecha
-            if (selectedPrioridad === 'Programar' && !fechaProgramacionInput.value) {
-                document.getElementById('modalAlert').className = 'alert error';
-                document.getElementById('modalAlert').innerHTML = '❌ Al seleccionar "PROGRAMAR", debes elegir una fecha de programación';
-                setTimeout(() => { document.getElementById('modalAlert').className = 'alert'; }, 3000);
-                return;
-            }
-            
-            const formData = {
-                contenido_corto: document.getElementById('contenido_corto').value,
-                copy_completo: document.getElementById('copy_completo').value,
-                fecha_prog: document.getElementById('fecha_prog').value,
-                fecha_registro: fechaHoraRegistro,  // Fecha y hora del sistema
-                revision: document.getElementById('revision').value,
-                publicado: document.getElementById('publicado').value,
-                plataforma: document.getElementById('plataforma').value,
-                link: document.getElementById('link').value || '',
-                nivel: document.getElementById('nivel').value,
-                responsable: document.getElementById('responsable').value,
-                elaborado_por: document.getElementById('elaborado_por').value,
-                visualizaciones: document.getElementById('visualizaciones').value || '0',
-                prioridad: selectedPrioridad,
-                observaciones: document.getElementById('observaciones').value || '',
-                fecha_programacion: selectedPrioridad === 'Programar' ? fechaProgramacionInput.value : ''
-            };
-            
-            const btn = document.querySelector('#contentForm .btn-submit');
-            const original = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span class="loading"></span> Guardando...';
-            
-            try {
-                await fetch(SCRIPT_URL, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify(formData) 
-                });
-                
-                document.getElementById('modalAlert').className = 'alert success';
-                document.getElementById('modalAlert').innerHTML = '✅ ¡Contenido guardado exitosamente!';
-                setTimeout(() => { document.getElementById('modalAlert').className = 'alert'; }, 2000);
-                
-                // Resetear formulario
-                document.getElementById('contentForm').reset();
-                document.getElementById('fecha_prog').value = getToday();
-                document.getElementById('publicado').value = 'No';
-                document.getElementById('prioridad').value = 'Media';
-                document.getElementById('visualizaciones').value = '0';
-                programarDateField.classList.remove('show');
-                fechaProgramacionInput.value = '';
-                
-                setTimeout(() => { 
-                    loadData(); 
-                    modal.classList.remove('active'); 
-                    document.body.style.overflow = ''; 
-                }, 1500);
-                
-            } catch(e) { 
-                console.error(e);
-                document.getElementById('modalAlert').className = 'alert error';
-                document.getElementById('modalAlert').innerHTML = '❌ Error al guardar. Verifica la conexión.';
-                setTimeout(() => { document.getElementById('modalAlert').className = 'alert'; }, 3000);
-            } finally { 
-                btn.disabled = false; 
-                btn.innerHTML = original;
-            }
-        });
-
-        // Inicializar
         loadData();
-        setInterval(loadData, 60000);
-        console.log('🚀 GELA - Sistema de Gestor de Contenido - Versión con fecha/hora y Programar en prioridad');
+        setInterval(loadData, 30000);
+        console.log('🚀 GELA - Sistema con edición y cambio de estado activado');
     </script>
 </body>
 </html>
